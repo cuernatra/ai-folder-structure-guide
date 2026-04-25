@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import QtQuick.Controls.Basic as Basic
 import QtCore
 import Qt.labs.folderlistmodel
 
@@ -15,6 +16,7 @@ ApplicationWindow
 
     property string currentFolder: "file:///"
     property var savedFolders: []
+    property string generatedTree: ""
 
     Settings
     {
@@ -37,7 +39,47 @@ ApplicationWindow
     // READY: local path -> file URL
     function urlFromPath(pathValue)
     {
-        return pathValue.startsWith("file://") ? pathValue : "file://" + pathValue
+        let pathText = pathValue ? pathValue.toString() : "/"
+
+        if (pathText.startsWith("file://"))
+        {
+            pathText = pathFromUrl(pathText)
+        }
+
+        if (!pathText || pathText.length === 0)
+        {
+            pathText = "/"
+        }
+
+        while (pathText.length > 1 && pathText.endsWith("/"))
+        {
+            pathText = pathText.slice(0, -1)
+        }
+
+        return "file://" + pathText
+    }
+
+    // READY: normalize folder URL so trailing slash format stays consistent
+    function normalizeFolderUrl(folderValue)
+    {
+        return urlFromPath(folderValue)
+    }
+
+    // READY: normalize + deduplicate saved favorites
+    function normalizeSavedFolders()
+    {
+        const normalized = []
+        for (let i = 0; i < savedFolders.length; i++)
+        {
+            const value = normalizeFolderUrl(savedFolders[i])
+            if (normalized.indexOf(value) === -1)
+            {
+                normalized.push(value)
+            }
+        }
+
+        savedFolders = normalized
+        appSettings.savedFoldersJson = JSON.stringify(savedFolders)
     }
 
     // READY: move one folder up
@@ -58,14 +100,16 @@ ApplicationWindow
     // READY: add current folder to favorites (if not already there)
     function addCurrentToFavorites()
     {
-        if (!currentFolder || currentFolder === "file:///")
+        const normalizedCurrent = normalizeFolderUrl(currentFolder)
+
+        if (!normalizedCurrent || normalizedCurrent === "file:///")
         {
             return
         }
 
-        if (savedFolders.indexOf(currentFolder) === -1)
+        if (savedFolders.indexOf(normalizedCurrent) === -1)
         {
-            savedFolders.push(currentFolder)
+            savedFolders.push(normalizedCurrent)
             appSettings.savedFoldersJson = JSON.stringify(savedFolders)
             refreshFavoritesModel()
         }
@@ -113,7 +157,7 @@ ApplicationWindow
     {
         if (appSettings.savedFolder && appSettings.savedFolder !== "file:///")
         {
-            window.currentFolder = appSettings.savedFolder
+            window.currentFolder = normalizeFolderUrl(appSettings.savedFolder)
         }
 
         try
@@ -131,9 +175,11 @@ ApplicationWindow
 
         if (savedFolders.length === 0 && appSettings.savedFolder && appSettings.savedFolder !== "file:///")
         {
-            savedFolders = [appSettings.savedFolder]
+            savedFolders = [normalizeFolderUrl(appSettings.savedFolder)]
             appSettings.savedFoldersJson = JSON.stringify(savedFolders)
         }
+
+        normalizeSavedFolders()
 
         refreshFavoritesModel()
     }
@@ -144,8 +190,9 @@ ApplicationWindow
         currentFolder: window.currentFolder
         onAccepted:
         {
-            window.currentFolder = selectedFolder.toString()
-            appSettings.savedFolder = selectedFolder.toString()
+            const normalizedSelected = normalizeFolderUrl(selectedFolder.toString())
+            window.currentFolder = normalizedSelected
+            appSettings.savedFolder = normalizedSelected
         }
     }
 
@@ -160,23 +207,16 @@ ApplicationWindow
         nameFilters: ["*"]
     }
 
-    Dialog
+    MessageDialog
     {
         id: removeFavoriteDialog
-        modal: true
         title: "Remove favorite"
-        standardButtons: Dialog.Yes | Dialog.No
+        text: "Remove selected favorite folder?"
+        buttons: MessageDialog.Yes | MessageDialog.No
 
         property int targetIndex: -1
 
         onAccepted: window.removeFavoriteAt(targetIndex)
-
-        contentItem: Label
-        {
-            text: "Remove selected favorite folder?"
-            wrapMode: Text.WordWrap
-            padding: 12
-        }
     }
 
     ColumnLayout
@@ -209,71 +249,91 @@ ApplicationWindow
             }
         }
 
-        RowLayout
+        GroupBox
         {
+            title: "Favorites"
             Layout.fillWidth: true
+            Layout.preferredHeight: 130
 
-            Button
+            ColumnLayout
             {
-                text: "Add Favorite"
-                onClicked: window.addCurrentToFavorites()
-            }
+                anchors.fill: parent
+                spacing: 8
 
-            ComboBox
-            {
-                id: favoritesCombo
-                Layout.fillWidth: true
-                model: favoritesModel
-                textRole: "label"
-            }
-
-            Button
-            {
-                text: "Open Favorite"
-                enabled: favoritesModel.count > 0 && favoritesCombo.currentIndex >= 0
-                onClicked:
+                GridLayout
                 {
-                    const row = favoritesModel.get(favoritesCombo.currentIndex)
-                    if (row && row.value)
+                    Layout.fillWidth: true
+                    columns: 3
+
+                    Button
                     {
-                        window.currentFolder = row.value
+                        text: "Add Favorite"
+                        Layout.row: 0
+                        Layout.column: 0
+                        Layout.preferredWidth: 130
+                        onClicked: window.addCurrentToFavorites()
                     }
-                }
-            }
-        }
 
-        RowLayout
-        {
-            Layout.fillWidth: true
+                    Button
+                    {
+                        text: "Open Favorite"
+                        Layout.row: 1
+                        Layout.column: 0
+                        Layout.preferredWidth: 130
+                        enabled: favoritesModel.count > 0 && favoritesCombo.currentIndex >= 0
+                        onClicked:
+                        {
+                            const row = favoritesModel.get(favoritesCombo.currentIndex)
+                            if (row && row.value)
+                            {
+                                window.currentFolder = normalizeFolderUrl(row.value)
+                            }
+                        }
+                    }
 
-            Item
-            {
-                Layout.fillWidth: true
-            }
+                    ComboBox
+                    {
+                        id: favoritesCombo
+                        Layout.row: 0
+                        Layout.column: 1
+                        Layout.rowSpan: 2
+                        Layout.fillWidth: true
+                        model: favoritesModel
+                        textRole: "label"
+                    }
 
-            Button
-            {
-                text: "Remove Favorite"
-                enabled: favoritesModel.count > 0 && favoritesCombo.currentIndex >= 0
+                    Basic.Button
+                    {
+                        text: "Remove Favorite"
+                        Layout.row: 0
+                        Layout.column: 2
+                        Layout.rowSpan: 2
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                        enabled: favoritesModel.count > 0 && favoritesCombo.currentIndex >= 0
 
-                background: Rectangle
-                {
-                    radius: 6
-                    color: parent.down ? "#b3261e" : "#d32f2f"
-                }
+                        background: Rectangle
+                        {
+                            implicitWidth: 140
+                            implicitHeight: 36
+                            radius: 6
+                            color: parent.down ? "#b3261e" : "#d32f2f"
+                            opacity: parent.enabled ? 1.0 : 0.45
+                        }
 
-                contentItem: Text
-                {
-                    text: parent.text
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
+                        contentItem: Text
+                        {
+                            text: parent.text
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
 
-                onClicked:
-                {
-                    removeFavoriteDialog.targetIndex = favoritesCombo.currentIndex
-                    removeFavoriteDialog.open()
+                        onClicked:
+                        {
+                            removeFavoriteDialog.targetIndex = favoritesCombo.currentIndex
+                            removeFavoriteDialog.open()
+                        }
+                    }
                 }
             }
         }
@@ -281,7 +341,7 @@ ApplicationWindow
         Frame
         {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: 190
 
             ListView
             {
@@ -301,6 +361,55 @@ ApplicationWindow
                         {
                             window.currentFolder = window.urlFromPath(filePath)
                         }
+                    }
+                }
+            }
+        }
+
+        GroupBox
+        {
+            title: "Ollama Input"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.preferredHeight: 320
+
+            ColumnLayout
+            {
+                anchors.fill: parent
+                spacing: 8
+
+                RowLayout
+                {
+                    Layout.fillWidth: true
+
+                    Button
+                    {
+                        text: "Generate Ollama Input"
+                        onClicked:
+                        {
+                            generatedTree = folderTreeService.buildOllamaInput(window.currentFolder)
+                        }
+                    }
+
+                    Item
+                    {
+                        Layout.fillWidth: true
+                    }
+                }
+
+                ScrollView
+                {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    TextArea
+                    {
+                        readOnly: true
+                        wrapMode: TextEdit.NoWrap
+                        font.family: "Menlo"
+                        text: generatedTree.length > 0
+                            ? generatedTree
+                            : "1) Select folder\n2) Click Generate Ollama Input\n3) ENJOY!"
                     }
                 }
             }

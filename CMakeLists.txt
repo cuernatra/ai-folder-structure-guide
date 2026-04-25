@@ -10,6 +10,8 @@ qt_standard_project_setup(REQUIRES 6.10)
 
 qt_add_executable(appai_folder_structure_guide
     main.cpp
+    FolderTreeService.cpp
+    FolderTreeService.h
 )
 
 qt_add_qml_module(appai_folder_structure_guide
