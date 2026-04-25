@@ -82,3 +82,6 @@ CMakeLists.txt.user*
 .uic/
 /build*/
 /.qtcreator/
+
+# local vscode settings
+.vscode/c_cpp_properties.json
