@@ -17,6 +17,7 @@ ApplicationWindow
     property string currentFolder: "file:///"
     property var savedFolders: []
     property string generatedTree: ""
+    property bool compactLayout: width < 980
 
     Settings
     {
@@ -222,8 +223,8 @@ ApplicationWindow
     ColumnLayout
     {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 10
+        anchors.margins: compactLayout ? 10 : 12
+        spacing: compactLayout ? 8 : 10
 
         RowLayout
         {
@@ -253,7 +254,7 @@ ApplicationWindow
         {
             title: "Favorites"
             Layout.fillWidth: true
-            Layout.preferredHeight: 130
+            Layout.preferredHeight: compactLayout ? 140 : 130
 
             ColumnLayout
             {
@@ -270,7 +271,7 @@ ApplicationWindow
                         text: "Add Favorite"
                         Layout.row: 0
                         Layout.column: 0
-                        Layout.preferredWidth: 130
+                        Layout.preferredWidth: compactLayout ? 120 : 130
                         onClicked: window.addCurrentToFavorites()
                     }
 
@@ -279,7 +280,7 @@ ApplicationWindow
                         text: "Open Favorite"
                         Layout.row: 1
                         Layout.column: 0
-                        Layout.preferredWidth: 130
+                        Layout.preferredWidth: compactLayout ? 120 : 130
                         enabled: favoritesModel.count > 0 && favoritesCombo.currentIndex >= 0
                         onClicked:
                         {
@@ -338,78 +339,85 @@ ApplicationWindow
             }
         }
 
-        Frame
+        SplitView
         {
             Layout.fillWidth: true
-            Layout.preferredHeight: 190
+            Layout.fillHeight: true
+            orientation: Qt.Vertical
 
-            ListView
+            Frame
             {
-                anchors.fill: parent
-                clip: true
-                model: folderModel
+                SplitView.minimumHeight: 140
+                SplitView.preferredHeight: Math.max(170, window.height * 0.32)
 
-                // customizing row layout/icons/actions.
-                delegate: ItemDelegate
+                ListView
                 {
-                    width: ListView.view.width
-                    text: (fileIsDir ? "📁 " : "📄 ") + fileName
+                    anchors.fill: parent
+                    clip: true
+                    model: folderModel
 
-                    onClicked:
+                    // customizing row layout/icons/actions.
+                    delegate: ItemDelegate
                     {
-                        if (fileIsDir)
+                        width: ListView.view.width
+                        text: (fileIsDir ? "📁 " : "📄 ") + fileName
+
+                        onClicked:
                         {
-                            window.currentFolder = window.urlFromPath(filePath)
+                            if (fileIsDir)
+                            {
+                                window.currentFolder = window.urlFromPath(filePath)
+                            }
                         }
                     }
                 }
             }
-        }
 
-        GroupBox
-        {
-            title: "Ollama Input"
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.preferredHeight: 320
-
-            ColumnLayout
+            GroupBox
             {
-                anchors.fill: parent
-                spacing: 8
+                title: "Ollama Input"
+                SplitView.minimumHeight: 220
+                SplitView.fillHeight: true
+                SplitView.preferredHeight: Math.max(260, window.height * 0.48)
 
-                RowLayout
+                ColumnLayout
                 {
-                    Layout.fillWidth: true
+                    anchors.fill: parent
+                    spacing: 8
 
-                    Button
+                    RowLayout
                     {
-                        text: "Generate Ollama Input"
-                        onClicked:
+                        Layout.fillWidth: true
+
+                        Button
                         {
-                            generatedTree = folderTreeService.buildOllamaInput(window.currentFolder)
+                            text: "Generate Ollama Input"
+                            onClicked:
+                            {
+                                generatedTree = folderTreeService.buildOllamaInput(window.currentFolder)
+                            }
+                        }
+
+                        Item
+                        {
+                            Layout.fillWidth: true
                         }
                     }
 
-                    Item
+                    ScrollView
                     {
                         Layout.fillWidth: true
-                    }
-                }
+                        Layout.fillHeight: true
 
-                ScrollView
-                {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    TextArea
-                    {
-                        readOnly: true
-                        wrapMode: TextEdit.NoWrap
-                        font.family: "Menlo"
-                        text: generatedTree.length > 0
-                            ? generatedTree
-                            : "1) Select folder\n2) Click Generate Ollama Input\n3) ENJOY!"
+                        TextArea
+                        {
+                            readOnly: true
+                            wrapMode: TextEdit.NoWrap
+                            font.family: "Menlo"
+                            text: generatedTree.length > 0
+                                ? generatedTree
+                                : "1) Select folder\n2) Click Generate Ollama Input\n3) ENJOY!"
+                        }
                     }
                 }
             }
