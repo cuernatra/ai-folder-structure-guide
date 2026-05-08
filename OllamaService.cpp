@@ -31,8 +31,6 @@ QString OllamaService::resolveOllamaProgram() const
 
 QStringList OllamaService::availableModels()
 {
-    QStringList fallbackModels{QStringLiteral("llama3.2"), QStringLiteral("llama3.1"), QStringLiteral("mistral"), QStringLiteral("qwen2.5")};
-
     QProcess listProcess;
     listProcess.setProgram(m_ollamaProgram.isEmpty() ? resolveOllamaProgram() : m_ollamaProgram);
     listProcess.setArguments({QStringLiteral("list")});
@@ -41,7 +39,7 @@ QStringList OllamaService::availableModels()
 
     if (!listProcess.waitForFinished(3000))
     {
-        return fallbackModels;
+        return {};
     }
 
     const QString output = QString::fromLocal8Bit(listProcess.readAllStandardOutput());
@@ -58,7 +56,7 @@ QStringList OllamaService::availableModels()
             models << modelName;
     }
 
-    return models.isEmpty() ? fallbackModels : models;
+    return models;
 }
 
 bool OllamaService::ensureOllamaRunning()

@@ -157,6 +157,21 @@ ApplicationWindow
         }
     }
 
+    function refreshOllamaModels()
+    {
+        const models = ollamaService.availableModels()
+        if (models && models.length > 0)
+        {
+            window.ollamaModels = models
+            window.selectedOllamaModel = models[0]
+        }
+        else
+        {
+            window.ollamaModels = []
+            window.selectedOllamaModel = ""
+        }
+    }
+
     // READY: restore saved folder on startup
     Component.onCompleted:
     {
@@ -188,12 +203,7 @@ ApplicationWindow
 
         refreshFavoritesModel()
 
-        const models = ollamaService.availableModels()
-        if (models && models.length > 0)
-        {
-            window.ollamaModels = models
-            window.selectedOllamaModel = models[0]
-        }
+        refreshOllamaModels()
     }
 
     FolderDialog
@@ -497,7 +507,7 @@ ApplicationWindow
                         Button
                         {
                             text: "Analyze with Ollama"
-                            enabled: generatedTree.length > 0
+                            enabled: generatedTree.length > 0 && window.selectedOllamaModel.length > 0
                             onClicked:
                             {
                                 window.ollamaAnalysis = ""
@@ -512,7 +522,21 @@ ApplicationWindow
                             id: modelCombo
                             model: window.ollamaModels
                             currentIndex: 0
+                            enabled: window.ollamaModels.length > 0
                             onActivated: window.selectedOllamaModel = currentText
+                        }
+
+                        Label
+                        {
+                            visible: window.ollamaModels.length === 0
+                            text: "No models found"
+                            color: "#ffb4ab"
+                        }
+
+                        Button
+                        {
+                            text: "Refresh models"
+                            onClicked: refreshOllamaModels()
                         }
 
                         Item
