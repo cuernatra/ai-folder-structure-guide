@@ -1,3 +1,5 @@
+// Ollama backend implementation: model listing, process startup, and prompt request handling.
+
 #include "OllamaService.h"
 
 #include <QNetworkRequest>

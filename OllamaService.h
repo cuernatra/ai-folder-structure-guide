@@ -1,3 +1,5 @@
+// Ollama backend API: model discovery, auto-start handling, and analysis requests.
+
 #pragma once
 
 #include <QObject>

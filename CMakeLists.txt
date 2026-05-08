@@ -1,3 +1,5 @@
+# Project build config: Qt app + automatic Windows deploy after build.
+
 cmake_minimum_required(VERSION 3.16)
 
 project(ai_folder_structure_guide VERSION 0.1 LANGUAGES CXX)
@@ -22,6 +24,7 @@ qt_add_qml_module(appai_folder_structure_guide
         Main.qml
 )
 
+# AI pro tips:
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.

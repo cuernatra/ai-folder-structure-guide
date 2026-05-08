@@ -1,3 +1,5 @@
+// Folder tree backend implementation for generating Ollama-ready project context.
+
 #include "FolderTreeService.h"
 
 #include <QDir>

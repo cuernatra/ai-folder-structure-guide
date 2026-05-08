@@ -1,3 +1,5 @@
+// Folder tree backend: builds project tree text (optionally with file contents) for AI prompts.
+
 #pragma once
 
 #include <QObject>

@@ -1,3 +1,5 @@
+// App entry point: initializes Qt/QML and exposes backend services.
+
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>

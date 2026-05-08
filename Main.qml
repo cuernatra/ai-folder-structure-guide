@@ -1,3 +1,5 @@
+// Main UI: folder browser, prompt generation options, and Ollama analysis controls.
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
