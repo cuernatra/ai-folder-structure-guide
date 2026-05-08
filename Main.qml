@@ -17,6 +17,10 @@ ApplicationWindow
     property string currentFolder: "file:///"
     property var savedFolders: []
     property string generatedTree: ""
+    property string ollamaAnalysis: ""
+    property string ollamaError: ""
+    property string selectedOllamaModel: "llama3.2"
+    property var ollamaModels: ["llama3.2"]
     property bool compactLayout: width < 980
 
     Settings
@@ -183,6 +187,13 @@ ApplicationWindow
         normalizeSavedFolders()
 
         refreshFavoritesModel()
+
+        const models = ollamaService.availableModels()
+        if (models && models.length > 0)
+        {
+            window.ollamaModels = models
+            window.selectedOllamaModel = models[0]
+        }
     }
 
     FolderDialog
@@ -218,6 +229,91 @@ ApplicationWindow
         property int targetIndex: -1
 
         onAccepted: window.removeFavoriteAt(targetIndex)
+    }
+
+    Connections
+    {
+        target: ollamaService
+
+        function onAnalysisReady(result)
+        {
+            window.ollamaError = ""
+            window.ollamaAnalysis = result
+            ollamaResultPopup.open()
+        }
+
+        function onAnalysisError(error)
+        {
+            window.ollamaAnalysis = ""
+            window.ollamaError = error
+            ollamaResultPopup.open()
+        }
+    }
+
+    Popup
+    {
+        id: ollamaResultPopup
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(window.width - 40, 760)
+        height: Math.min(window.height - 40, 520)
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        padding: 12
+
+        background: Rectangle
+        {
+            radius: 8
+            color: "#202124"
+            border.color: "#3c4043"
+        }
+
+        ColumnLayout
+        {
+            anchors.fill: parent
+            spacing: 10
+
+            Label
+            {
+                text: "Ollama Analysis"
+                color: "white"
+                font.bold: true
+                font.pixelSize: 18
+            }
+
+            Label
+            {
+                visible: ollamaService.loading
+                text: "Analyzing..."
+                color: "#8ab4f8"
+            }
+
+            ScrollView
+            {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                TextArea
+                {
+                    readOnly: true
+                    wrapMode: TextEdit.Wrap
+                    text: ollamaService.loading
+                        ? "Sending generated folder tree to Ollama..."
+                        : (window.ollamaError.length > 0 ? window.ollamaError : window.ollamaAnalysis)
+                }
+            }
+
+            RowLayout
+            {
+                Layout.alignment: Qt.AlignRight
+
+                Button
+                {
+                    text: "Close"
+                    onClicked: ollamaResultPopup.close()
+                }
+            }
+        }
     }
 
     ColumnLayout
@@ -398,6 +494,27 @@ ApplicationWindow
                             }
                         }
 
+                        Button
+                        {
+                            text: "Analyze with Ollama"
+                            enabled: generatedTree.length > 0
+                            onClicked:
+                            {
+                                window.ollamaAnalysis = ""
+                                window.ollamaError = ""
+                                ollamaResultPopup.open()
+                                ollamaService.analyzeTree(generatedTree, window.selectedOllamaModel)
+                            }
+                        }
+
+                        ComboBox
+                        {
+                            id: modelCombo
+                            model: window.ollamaModels
+                            currentIndex: 0
+                            onActivated: window.selectedOllamaModel = currentText
+                        }
+
                         Item
                         {
                             Layout.fillWidth: true
@@ -411,6 +528,7 @@ ApplicationWindow
 
                         TextArea
                         {
+                            id: generatedTreeArea
                             readOnly: true
                             wrapMode: TextEdit.NoWrap
                             font.family: "Menlo"

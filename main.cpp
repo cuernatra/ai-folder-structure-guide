@@ -3,14 +3,17 @@
 #include <QQmlContext>
 
 #include "FolderTreeService.h"
+#include "OllamaService.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
     FolderTreeService folderTreeService;
+    OllamaService ollamaService;
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("folderTreeService", &folderTreeService);
+    engine.rootContext()->setContextProperty("ollamaService", &ollamaService);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

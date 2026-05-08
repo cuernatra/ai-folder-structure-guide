@@ -4,14 +4,16 @@ project(ai_folder_structure_guide VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick Network)
 
-qt_standard_project_setup(REQUIRES 6.10)
+qt_standard_project_setup(REQUIRES 6.9)
 
 qt_add_executable(appai_folder_structure_guide
     main.cpp
     FolderTreeService.cpp
     FolderTreeService.h
+    OllamaService.cpp
+    OllamaService.h
 )
 
 qt_add_qml_module(appai_folder_structure_guide
@@ -32,8 +34,26 @@ set_target_properties(appai_folder_structure_guide PROPERTIES
 )
 
 target_link_libraries(appai_folder_structure_guide
-    PRIVATE Qt6::Quick
+    PRIVATE Qt6::Quick Qt6::Network
 )
+
+if(WIN32)
+    get_target_property(_qt_qmake_executable Qt6::qmake IMPORTED_LOCATION)
+    get_filename_component(_qt_bin_dir "${_qt_qmake_executable}" DIRECTORY)
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
+
+    if(WINDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET appai_folder_structure_guide POST_BUILD
+            COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                --qmldir "${CMAKE_SOURCE_DIR}"
+                "$<TARGET_FILE:appai_folder_structure_guide>"
+            COMMENT "Deploying Qt runtime and QML dependencies with windeployqt"
+            VERBATIM
+        )
+    else()
+        message(WARNING "windeployqt not found. Qt runtime files will not be copied automatically.")
+    endif()
+endif()
 
 install(TARGETS appai_folder_structure_guide
     BUNDLE DESTINATION .
