@@ -21,6 +21,7 @@ ApplicationWindow
     property string ollamaError: ""
     property string selectedOllamaModel: "llama3.2"
     property var ollamaModels: ["llama3.2"]
+    property bool includeFileContentsForOllama: false
     property bool compactLayout: width < 980
 
     Settings
@@ -500,8 +501,19 @@ ApplicationWindow
                             text: "Generate Ollama Input"
                             onClicked:
                             {
-                                generatedTree = folderTreeService.buildOllamaInput(window.currentFolder)
+                                generatedTree = folderTreeService.buildOllamaInputWithContent(
+                                    window.currentFolder,
+                                    window.includeFileContentsForOllama,
+                                    4000,
+                                    30000)
                             }
+                        }
+
+                        CheckBox
+                        {
+                            text: "Include file contents"
+                            checked: window.includeFileContentsForOllama
+                            onToggled: window.includeFileContentsForOllama = checked
                         }
 
                         Button

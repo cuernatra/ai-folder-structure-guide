@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QFileInfo>
 #include <QStringList>
 
 class FolderTreeService : public QObject
@@ -16,6 +17,10 @@ public:
                                   int maxEntries = 2000) const;
 
     Q_INVOKABLE QString buildOllamaInput(const QString &folderUrl) const;
+    Q_INVOKABLE QString buildOllamaInputWithContent(const QString &folderUrl,
+                                                   bool includeContent,
+                                                   int maxFileChars = 4000,
+                                                   int maxTotalChars = 30000) const;
 
 private:
     struct BuildState
@@ -27,6 +32,15 @@ private:
     static QString normalizePath(const QString &folderUrl);
 
     static bool shouldSkipName(const QString &name);
+
+    static bool shouldIncludeFileContent(const QFileInfo &info);
+
+    static void appendFileContents(QStringList &lines,
+                                   const QString &rootPath,
+                                   int maxDepth,
+                                   int maxFileChars,
+                                   int maxTotalChars,
+                                   int &totalChars);
 
     static void appendTree(QStringList &lines,
                            const QString &path,
